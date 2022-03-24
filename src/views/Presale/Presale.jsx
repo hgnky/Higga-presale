@@ -97,6 +97,10 @@ function Presale() {
 
     if (action === "presale" && gweiValue.gt(ethers.utils.parseUnits(bnbBalance, "ether"))) {
       return dispatch(error("You cannot deposit more than your BNB balance."));
+    } else if (action === "presale" && gweiValue.gt(ethers.utils.parseUnits(maxEthlimit, "ether"))) {
+      return dispatch(error("You cannot deposit more than Max contribute amount."));
+    } else if (action === "presale" && gweiValue.st(ethers.utils.parseUnits(minEthlimit, "ether"))) {
+      return dispatch(error("You cannot deposit more than Max contribute amount."));
     }
     await dispatch(changeDeposit({ address, action, value: quantity.toString(), provider, networkID: chainID }));
   };
@@ -216,13 +220,13 @@ function Presale() {
                     <Typography variant="h6" color="textSecondary">
                       Total Contributed Amount:
                     </Typography>
-                    {totalRaisedBNB && (<Progress animation={3} completed={totalRaisedBNB/hardCap} className="progress">
+                    {totalRaisedBNB && (<Progress animation={3} completed={totalRaisedBNB/hardCap*100} className="progress">
                       <p>
                       {userInfo ? new Intl.NumberFormat({
                       style: "currency",
                       maximumFractionDigits: 0,
                       minimumFractionDigits: 0,
-                      }).format(totalRaisedBNB/hardCap): 0}%
+                      }).format(totalRaisedBNB/hardCap*100): 0}%
                       </p>
                     </Progress>)}
                     <Typography variant="h4" color="textSecondary" className="title">
@@ -235,13 +239,13 @@ function Presale() {
                     <Typography variant="h6" color="textSecondary">
                       Total Token Sold Amount:
                     </Typography>
-                    {soldAmount && (<Progress animation={3} completed={soldAmount/50000000} color="#f44336" className="progress">
+                    {soldAmount && (<Progress animation={3} completed={soldAmount/50000000*100} color="#f44336" className="progress">
                       <p>
                       {userInfo ? new Intl.NumberFormat({
                       style: "currency",
                       maximumFractionDigits: 0,
                       minimumFractionDigits: 0,
-                      }).format(soldAmount/50000000): 0}%
+                      }).format(soldAmount/50000000*100): 0}%
                       </p>
                     </Progress>)}
                     <Typography variant="h4" color="textSecondary" className="title">
