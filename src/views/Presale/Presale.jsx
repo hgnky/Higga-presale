@@ -99,7 +99,7 @@ function Presale() {
       return dispatch(error("You cannot deposit more than your BNB balance."));
     } else if (action === "presale" && gweiValue.gt(ethers.utils.parseUnits(maxEthlimit, "ether"))) {
       return dispatch(error("You cannot deposit more than Max contribute amount."));
-    } else if (action === "presale" && gweiValue.st(ethers.utils.parseUnits(minEthlimit, "ether"))) {
+    } else if (action === "presale" && gweiValue.lt(ethers.utils.parseUnits(minEthlimit, "ether"))) {
       return dispatch(error("You cannot deposit more than Max contribute amount."));
     }
     await dispatch(changeDeposit({ address, action, value: quantity.toString(), provider, networkID: chainID }));
