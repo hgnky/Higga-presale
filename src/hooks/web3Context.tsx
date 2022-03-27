@@ -169,7 +169,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     const connectedAddress = await connectedProvider.getSigner().getAddress();
     const validNetwork = _checkNetwork(chainId);
     if (!validNetwork) {
-      console.error("Wrong network, please switch to fantom");
+      console.error("Wrong network, please switch to BSC Main Network");
       error("Please connect your wallet!");
       return;
     }
