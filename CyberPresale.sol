@@ -67,7 +67,7 @@ abstract contract Ownable is Context {
     }
 }
 
-interface IERC20 {
+interface IARC20 {
 
     function totalSupply() external view returns (uint256);
     function decimals() external view returns (uint8);
@@ -81,25 +81,29 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-contract CyberVersePreSale is Ownable {
+contract PreSale is Ownable {
 
     using SafeMath for uint256;
 
-    IERC20 public DAWA = IERC20(0x7D981e8d39E5B613d04B42C4dd48e03Ec25919A3);
-    address public Recipient = 0x3263Eb2e43e609b5AbCf9Ee9b0884fF1c52ed7F6;
+    IARC20 public PTOKEN = IARC20(0x3058A5e76986339C107b3F6636B774cE7328123B);
+    address public Recipient = 0x0e5EF4184E897C3aC50A4C3e3Cc3294c486A2B5c;
 
-    uint256 public tokenRatePerEth = 12500; // 12500 * (10 ** decimals) DAWA per eth
+    uint256 public tokenRatePerEth = 12500; // 12500 * (10 ** decimals) PTOKEN per eth
+    uint256 public pTokenRatePerEth = 13000; // 13000 * (10 ** decimals) PTOKEN per eth
+
     uint256 public minETHLimit = 0.05 ether;
     uint256 public maxETHLimit = 10 ether;
 
     uint256 public hardCap = 4000 ether;
-    uint256 public totalRaisedBNB = 0; // total BNB raised by sale
+    uint256 public totalRaisedAVAX = 0; // total AVAX raised by sale
     uint256 public totaltokenSold = 0;
 
     uint256 public startTime;
     uint256 public endTime;
+    uint256 public pSaleDuration = 600;
     bool public contractPaused; // circuit breaker
 
+    mapping(address => bool) public whiteListed;
     mapping(address => uint256) public usersInvestments;
 
     constructor(uint256 _startTime, uint256 _endTime) {
@@ -119,15 +123,16 @@ contract CyberVersePreSale is Ownable {
 
     function setPresaleToken(address tokenaddress) external onlyOwner {
         require( tokenaddress != address(0) );
-        DAWA = IERC20(tokenaddress);
+        PTOKEN = IARC20(tokenaddress);
     }
 
     function setRecipient(address recipient) external onlyOwner {
         Recipient = recipient;
     }
 
-    function setTokenRatePerEth(uint256 rate) external onlyOwner {
+    function setTokenRatePerEth(uint256 rate, uint256 pRate) external onlyOwner {
         tokenRatePerEth = rate;
+        pTokenRatePerEth = pRate;
     }
 
     function setMinEthLimit(uint256 amount) external onlyOwner {
@@ -153,24 +158,41 @@ contract CyberVersePreSale is Ownable {
         return contractPaused;
     }
 
+    function addMultipleAccountsToWhiteList(address[] calldata _accounts, bool _value) public onlyOwner {
+        for(uint256 i = 0; i < _accounts.length; i++) {
+            whiteListed[_accounts[i]] = _value;
+        }
+    }
+
+    function addWhiteList(address _account) public onlyOwner {
+        whiteListed[_account] = true;
+    }
+    
+    function removeWhiteList(address _account) public onlyOwner {
+        whiteListed[_account] = false;
+    }
+
     receive() external payable{
         deposit();
     }
 
     function deposit() public payable checkIfPaused {
         require(block.timestamp > startTime, 'Sale has not started');
+        if(block.timestamp < startTime.add(pSaleDuration)){
+            require(whiteListed[msg.sender], 'Private sale');
+        }
         require(block.timestamp < endTime, 'Sale has ended');
-        require(totalRaisedBNB <= hardCap, 'HardCap exceeded');
+        require(totalRaisedAVAX <= hardCap, 'HardCap exceeded');
         require(
                 usersInvestments[msg.sender].add(msg.value) <= maxETHLimit
                 && usersInvestments[msg.sender].add(msg.value) >= minETHLimit,
                 "Installment Invalid."
         );
-        
-        uint256 tokenAmount = getTokensPerEth(msg.value);
-        require(DAWA.transfer(msg.sender, tokenAmount), "Insufficient balance of presale contract!");
 
-        totalRaisedBNB = totalRaisedBNB.add(msg.value);
+        uint256 tokenAmount = getTokensPerEth(msg.value);
+        require(PTOKEN.transfer(msg.sender, tokenAmount), "Insufficient balance of presale contract!");
+
+        totalRaisedAVAX = totalRaisedAVAX.add(msg.value);
         totaltokenSold = totaltokenSold.add(tokenAmount);
         usersInvestments[msg.sender] = usersInvestments[msg.sender].add(msg.value);
 
@@ -179,7 +201,7 @@ contract CyberVersePreSale is Ownable {
 
     function getUnsoldTokens(address token, address to) external onlyOwner {
         require(block.timestamp > endTime + 10 days, "You cannot get tokens until the presale is closed.");
-        IERC20(token).transfer(to, IERC20(token).balanceOf(address(this)) );
+        IARC20(token).transfer(to, IARC20(token).balanceOf(address(this)) );
     }
 
     function getUserRemainingAllocation(address account) external view returns ( uint256 ) {
@@ -187,6 +209,9 @@ contract CyberVersePreSale is Ownable {
     }
 
     function getTokensPerEth(uint256 amount) internal view returns(uint256) {
-        return amount.mul(tokenRatePerEth).div(10**(uint256(18).sub(DAWA.decimals())));
+        if(block.timestamp > startTime.add(pSaleDuration)){
+            return amount.mul(tokenRatePerEth).div(10**(uint256(18).sub(PTOKEN.decimals())));
+        }
+        return amount.mul(pTokenRatePerEth).div(10**(uint256(18).sub(PTOKEN.decimals())));
     }
 }
